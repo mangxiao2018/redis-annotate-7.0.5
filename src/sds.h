@@ -42,6 +42,10 @@ extern const char *SDS_NOINIT;
 
 typedef char *sds;
 
+/**
+ *  len:记录buf数据中已使用字节的数量，也就是SDS所保存的字符串的长度
+ *  buf[]:用于保存字符串,它是字节数组，如sds字符串为"hello",那buf[0]:h,buf[1]:e,buf[2]:l,buf[3]:l,buf[4]:o,buf[5]:\0
+ */
 /* Note: sdshdr5 is never used, we just access the flags byte directly.
  * However is here to document the layout of type 5 SDS strings. */
 struct __attribute__ ((__packed__)) sdshdr5 {
@@ -83,7 +87,7 @@ struct __attribute__ ((__packed__)) sdshdr64 {
 #define SDS_HDR_VAR(T,s) struct sdshdr##T *sh = (void*)((s)-(sizeof(struct sdshdr##T)));
 #define SDS_HDR(T,s) ((struct sdshdr##T *)((s)-(sizeof(struct sdshdr##T))))
 #define SDS_TYPE_5_LEN(f) ((f)>>SDS_TYPE_BITS)
-
+/*返回SDS的已使用空间字节数 */
 static inline size_t sdslen(const sds s) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
@@ -100,7 +104,7 @@ static inline size_t sdslen(const sds s) {
     }
     return 0;
 }
-
+/*返回SDS的未使用空间字节数 */
 static inline size_t sdsavail(const sds s) {
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
@@ -217,15 +221,23 @@ static inline void sdssetalloc(sds s, size_t newlen) {
 
 sds sdsnewlen(const void *init, size_t initlen);
 sds sdstrynewlen(const void *init, size_t initlen);
+/*创建一个包含给定C字符串的SDS */
 sds sdsnew(const char *init);
+/*创建一个不包含任何内容的空SDS */
 sds sdsempty(void);
+/*创建一个给定SDS的副本 */
 sds sdsdup(const sds s);
+/*释放给定的SDS */
 void sdsfree(sds s);
+/*用空字符串将SDS扩展至给定长度 */
 sds sdsgrowzero(sds s, size_t len);
 sds sdscatlen(sds s, const void *t, size_t len);
+/*将给定C字符串拼接SDS字符串的末尾 */
 sds sdscat(sds s, const char *t);
+/*将给定SDS字符串拼接到另一个SDS字符串的末尾 */
 sds sdscatsds(sds s, const sds t);
 sds sdscpylen(sds s, const char *t, size_t len);
+/*将给定的C字符串复制到SDS里面，覆盖SDS原有的字符串 */
 sds sdscpy(sds s, const char *t);
 
 sds sdscatvprintf(sds s, const char *fmt, va_list ap);
@@ -237,11 +249,15 @@ sds sdscatprintf(sds s, const char *fmt, ...);
 #endif
 
 sds sdscatfmt(sds s, char const *fmt, ...);
+/*接受一个SDS和一个C字符串作为参数，从SDS中移除所有在C字符串中出现过的字符 */
 sds sdstrim(sds s, const char *cset);
 void sdssubstr(sds s, size_t start, size_t len);
+/*保留SDS给定区间内的数据，不在区间内的数据会补覆盖或清除 */
 void sdsrange(sds s, ssize_t start, ssize_t end);
 void sdsupdatelen(sds s);
+/*清空SDS保存的字符串内容 */
 void sdsclear(sds s);
+/*对比两个SDS字符串是否相同 */
 int sdscmp(const sds s1, const sds s2);
 sds *sdssplitlen(const char *s, ssize_t len, const char *sep, int seplen, int *count);
 void sdsfreesplitres(sds *tokens, int count);
