@@ -40,7 +40,7 @@
 #include "sdsalloc.h"
 
 const char *SDS_NOINIT = "SDS_NOINIT";
-/**根据类型返回所属5,8,16,32,64结构体大小*/
+/**根据类型返回所属5,8,16,32,64结构体大小,不包含char buf[]的大小，也就是具函数返回的大小为除char buf[]以外的部分*/
 static inline int sdsHdrSize(char type) {
     switch(type&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -56,7 +56,15 @@ static inline int sdsHdrSize(char type) {
     }
     return 0;
 }
-
+/**
+ * 1<<5   :   2^5 = 32
+ * 1<<8   :   2^8 = 256
+ * 1<<16  :   2^16 = 65536
+ * 1<<32  :   2^32 = 4294967296
+ * 2^0 = 1 -> 2^1 = 2 -> 2^2 = 4 -> 2^3 = 8 -> 2^4 = 16 -> 2^5 = 32
+ * -> 2^6 = 64 -> 2^7 = 128 -> 2^8 = 256 -> 2^9 = 512 -> 2^10 = 1024
+ * 根据字符串大小，判断属于哪种类型，并返回该类型
+ */
 static inline char sdsReqType(size_t string_size) {
     if (string_size < 1<<5)
         return SDS_TYPE_5;
@@ -72,7 +80,10 @@ static inline char sdsReqType(size_t string_size) {
     return SDS_TYPE_32;
 #endif
 }
-
+/**
+ * 根据类型取得该类型的空间大小最大值
+ *  - 1 是把最后的 ‘\0’ 大小去掉，不算在内
+ */
 static inline size_t sdsTypeMaxSize(char type) {
     if (type == SDS_TYPE_5)
         return (1<<5) - 1;
@@ -107,10 +118,12 @@ sds _sdsnewlen(const void *init, size_t initlen, int trymalloc) {
     /* Empty strings are usually created in order to append. Use type 8
      * since type 5 is not good at this. */
     if (type == SDS_TYPE_5 && initlen == 0) type = SDS_TYPE_8;
+    //根据类型获取该类型的除char buf[]以外的大小
     int hdrlen = sdsHdrSize(type);
     unsigned char *fp; /* flags pointer. */
+    //char buf[]的大小
     size_t usable;
-
+    // initlen + hdrlen + 1 : 字符串长度 + 该字符串存储的类型头长度 + 1
     assert(initlen + hdrlen + 1 > initlen); /* Catch size_t overflow */
     sh = trymalloc?
         s_trymalloc_usable(hdrlen+initlen+1, &usable) :
@@ -119,13 +132,13 @@ sds _sdsnewlen(const void *init, size_t initlen, int trymalloc) {
     if (init==SDS_NOINIT)
         init = NULL;
     else if (!init)
-        memset(sh, 0, hdrlen+initlen+1);
+        memset(sh, 0, hdrlen+initlen+1); // memset(目标,值,大小) : memset(sh, 0, 3+0+1) = memset(sh, 0, 4)
     s = (char*)sh+hdrlen;
     fp = ((unsigned char*)s)-1;
     usable = usable-hdrlen-1;
     if (usable > sdsTypeMaxSize(type))
         usable = sdsTypeMaxSize(type);
-    switch(type) {
+    switch(type) { // 根据类型对该字符串使用的类型结构值进行赋值
         case SDS_TYPE_5: {
             *fp = type | (initlen << SDS_TYPE_BITS);
             break;
@@ -159,8 +172,9 @@ sds _sdsnewlen(const void *init, size_t initlen, int trymalloc) {
             break;
         }
     }
+    //initlen : 已使用的空间长度，也就是字符串在char buf[]中所占用的长度大小
     if (initlen && init)
-        memcpy(s, init, initlen);
+        memcpy(s, init, initlen); // 通过memcpy(目标,源,长度大小)实现新的s空间的创建并把值拷贝进来
     s[initlen] = '\0';
     return s;
 }
@@ -224,7 +238,9 @@ void sdsclear(sds s) {
     s[0] = '\0';
 }
 
-/* Enlarge the free space at the end of the sds string so that the caller
+/*
+ * 扩容
+ * Enlarge the free space at the end of the sds string so that the caller
  * is sure that after calling this function can overwrite up to addlen
  * bytes after the end of the string, plus one more byte for nul term.
  * If there's already sufficient free space, this function returns without any
