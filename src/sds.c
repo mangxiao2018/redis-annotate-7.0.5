@@ -240,6 +240,9 @@ void sdsclear(sds s) {
 
 /*
  * 扩容
+ * sds s:原始操作的字符串
+ * size_t addlen:要扩容的长度
+ * int greedy:当为1时增容大于所需要的，当为0时只增容所需要的内存大小
  * Enlarge the free space at the end of the sds string so that the caller
  * is sure that after calling this function can overwrite up to addlen
  * bytes after the end of the string, plus one more byte for nul term.
@@ -254,54 +257,70 @@ void sdsclear(sds s) {
  * by sdslen(), but only the free buffer space we have. */
 sds _sdsMakeRoomFor(sds s, size_t addlen, int greedy) {
     void *sh, *newsh;
+    //SDS的未使用空间字节数
     size_t avail = sdsavail(s);
     size_t len, newlen, reqlen;
     char type, oldtype = s[-1] & SDS_TYPE_MASK;
     int hdrlen;
+    //char buf[]里已存内容的大小
     size_t usable;
 
-    /* Return ASAP if there is enough space left. */
+    /* avail >= addlen : 未使用的大于增加的
+     * Return ASAP if there is enough space left. */
     if (avail >= addlen) return s;
-
+    // 已使用的空间大小
     len = sdslen(s);
+    //字符串大小减去原类型头大小 ??? (char*)s-sdsHdrSize(oldtype) 目前理解的还不对，需要查资料，主要点在于(char*)s
     sh = (char*)s-sdsHdrSize(oldtype);
+    // reqlen:需要的长度
+    //newlen:新的长度
+    // len+addlen:已使用的长度+新增的长度
     reqlen = newlen = (len+addlen);
     assert(newlen > len);   /* Catch size_t overflow */
+    //当greedy为1时增容大于所需要的
     if (greedy == 1) {
         if (newlen < SDS_MAX_PREALLOC)
-            newlen *= 2;
+            newlen *= 2; // 2*(已使用的长度+新增的长度)
         else
-            newlen += SDS_MAX_PREALLOC;
+            newlen += SDS_MAX_PREALLOC; // 新长度=已使用的长度+新增的长度+1M
     }
-
+    //根据新长度判断该长度属于哪种类型
     type = sdsReqType(newlen);
 
     /* Don't use type 5: the user is appending to the string and type 5 is
      * not able to remember empty space, so sdsMakeRoomFor() must be called
      * at every appending operation. */
     if (type == SDS_TYPE_5) type = SDS_TYPE_8;
-
+    //根据扩容后的类型获取结构体头大小，也就是除char buf[]以外的部分大小
     hdrlen = sdsHdrSize(type);
     assert(hdrlen + newlen + 1 > reqlen);  /* Catch size_t overflow */
+    //如果新的类型等于扩容前的类型，也就是说类型没有变化
+    //扩容分配内存大小为:hdrlen+newlen+1= 新类型的结构体头长度+原来的已使用的长度+新增长度+1
     if (oldtype==type) {
+        //s_realloc_usable ?? 暂时理解不了
         newsh = s_realloc_usable(sh, hdrlen+newlen+1, &usable);
         if (newsh == NULL) return NULL;
-        s = (char*)newsh+hdrlen;
-    } else {
-        /* Since the header size changes, need to move the string forward,
+        s = (char*)newsh+hdrlen; //??理解不了newsh
+    } else {//如果类型有变化，重新分配内存，并且通过memcpy函数把原字符串s中的内容拷贝到新的空间(char*)newsh+hdrlen中,拷贝的长度是原实际内容长度+1
+        /* s_malloc_usable ?? 暂时理解不了
+         * Since the header size changes, need to move the string forward,
          * and can't use realloc */
         newsh = s_malloc_usable(hdrlen+newlen+1, &usable);
         if (newsh == NULL) return NULL;
         memcpy((char*)newsh+hdrlen, s, len+1);
-        s_free(sh);
-        s = (char*)newsh+hdrlen;
+        s_free(sh); //释放sh
+        s = (char*)newsh+hdrlen; //??理解不了newsh
+        //更新SDS类型
         s[-1] = type;
+        //设置SDS的长度为新的实际长度(因为内容没有变化所以len为原内容实际长度)
         sdssetlen(s, len);
     }
+    //usable表示char buf[]里已存内容的大小
     usable = usable-hdrlen-1;
+    //如果buf[]的长度大于该类型最大的长度，那用该类型最大值赋值usable
     if (usable > sdsTypeMaxSize(type))
         usable = sdsTypeMaxSize(type);
-    sdssetalloc(s, usable);
+    sdssetalloc(s, usable); //用usable的长度重新设置s的长度
     return s;
 }
 
