@@ -1,5 +1,5 @@
 /* adlist.c - A generic doubly linked list implementation
- *
+ * 一个通用的双向链表的实现
  * Copyright (c) 2006-2010, Salvatore Sanfilippo <antirez at gmail dot com>
  * All rights reserved.
  *
@@ -33,7 +33,8 @@
 #include "adlist.h"
 #include "zmalloc.h"
 
-/* Create a new list. The created list can be freed with
+/* 创建个空的双向链表
+ * Create a new list. The created list can be freed with
  * listRelease(), but private value of every node need to be freed
  * by the user before to call listRelease(), or by setting a free method using
  * listSetFreeMethod.
@@ -53,7 +54,8 @@ list *listCreate(void)
     return list;
 }
 
-/* Remove all the elements from the list without destroying the list itself. */
+/* 置空链表
+ * Remove all the elements from the list without destroying the list itself. */
 void listEmpty(list *list)
 {
     unsigned long len;
@@ -72,7 +74,7 @@ void listEmpty(list *list)
 }
 
 /* Free the whole list.
- *
+ * 释放链表资源
  * This function can't fail. */
 void listRelease(list *list)
 {
@@ -80,7 +82,8 @@ void listRelease(list *list)
     zfree(list);
 }
 
-/* Add a new node to the list, to head, containing the specified 'value'
+/* 增加一个新节点到链表头部
+ * Add a new node to the list, to head, containing the specified 'value'
  * pointer as value.
  *
  * On error, NULL is returned and no operation is performed (i.e. the
@@ -97,7 +100,7 @@ list *listAddNodeHead(list *list, void *value)
     return list;
 }
 
-/*
+/*增加一个新节点到链表头部
  * Add a node that has already been allocated to the head of list
  */
 void listLinkNodeHead(list* list, listNode *node) {
@@ -113,7 +116,8 @@ void listLinkNodeHead(list* list, listNode *node) {
     list->len++;
 }
 
-/* Add a new node to the list, to tail, containing the specified 'value'
+/* 增加一个新节点到链表尾部
+ * Add a new node to the list, to tail, containing the specified 'value'
  * pointer as value.
  *
  * On error, NULL is returned and no operation is performed (i.e. the
@@ -138,7 +142,7 @@ list *listAddNodeTail(list *list, void *value)
     list->len++;
     return list;
 }
-
+/** 插入节点 */
 list *listInsertNode(list *list, listNode *old_node, void *value, int after) {
     listNode *node;
 
@@ -168,7 +172,8 @@ list *listInsertNode(list *list, listNode *old_node, void *value, int after) {
     return list;
 }
 
-/* Remove the specified node from the specified list.
+/* 删除节点
+ * Remove the specified node from the specified list.
  * The node is freed. If free callback is provided the value is freed as well.
  *
  * This function can't fail. */
@@ -180,6 +185,7 @@ void listDelNode(list *list, listNode *node)
 }
 
 /*
+ * 删除节点
  * Remove the specified node from the list without freeing it.
  */
 void listUnlinkNode(list *list, listNode *node) {
@@ -198,7 +204,8 @@ void listUnlinkNode(list *list, listNode *node) {
     list->len--;
 }
 
-/* Returns a list iterator 'iter'. After the initialization every
+/* 获取指定方向的链表迭代器
+ * Returns a list iterator 'iter'. After the initialization every
  * call to listNext() will return the next element of the list.
  *
  * This function can't fail. */
@@ -215,7 +222,8 @@ listIter *listGetIterator(list *list, int direction)
     return iter;
 }
 
-/* Release the iterator memory */
+/* 释放迭代器内存资源
+ * Release the iterator memory */
 void listReleaseIterator(listIter *iter) {
     zfree(iter);
 }

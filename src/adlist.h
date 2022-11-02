@@ -44,13 +44,14 @@ typedef struct listIter {
     int direction;
 } listIter;
 
+/** 双向链表结构体 */
 typedef struct list {
-    listNode *head;
-    listNode *tail;
+    listNode *head; //头节点
+    listNode *tail; //尾节点
     void *(*dup)(void *ptr);
-    void (*free)(void *ptr);
-    int (*match)(void *ptr, void *key);
-    unsigned long len;
+    void (*free)(void *ptr); //释放指针
+    int (*match)(void *ptr, void *key); //匹配
+    unsigned long len; //长度
 } list;
 
 /* Functions implemented as macros */
