@@ -1,5 +1,7 @@
 /* Hash Tables Implementation.
- *
+ * 哈希表(字典)实现
+ * 本文件实现了基于内存的哈希表，具体功能有插入数据、删除数据、替换数据、查找数据、获取随机数据。
+ * 扩容方面采用的是2的幂次方为大小进行增长的，主键的哈希冲突采用链表处理。类似JAVA中的HashMap原理。
  * This file implements in-memory hash tables with insert/del/replace/find/
  * get-random-element operations. Hash tables will auto-resize if needed
  * tables of power of two in size are used, collisions are handled by
@@ -43,16 +45,20 @@
 
 #define DICT_OK 0
 #define DICT_ERR 1
-
+/** 链表 */
 typedef struct dictEntry {
+    // 键
     void *key;
+    // 值
     union {
         void *val;
         uint64_t u64;
         int64_t s64;
         double d;
     } v;
+    //链表后继节点
     struct dictEntry *next;     /* Next entry in the same hash bucket. */
+    // 用于存放 调用字典的调用方带过的的字典结构之后的数据。通过dictEntryMetadataBytes()函数来操作此数组，该数组为任意类型(void *)
     void *metadata[];           /* An arbitrary number of bytes (starting at a
                                  * pointer-aligned address) of size as returned
                                  * by dictType's dictEntryMetadataBytes(). */
@@ -61,14 +67,22 @@ typedef struct dictEntry {
 typedef struct dict dict;
 
 typedef struct dictType {
+    // 计算哈希值的函数
     uint64_t (*hashFunction)(const void *key);
+    // 复制键的函数
     void *(*keyDup)(dict *d, const void *key);
+    // 复制值的函数
     void *(*valDup)(dict *d, const void *obj);
+    // 对比键的函数
     int (*keyCompare)(dict *d, const void *key1, const void *key2);
+    // 销毁键的函数
     void (*keyDestructor)(dict *d, void *key);
+    // 销毁值的函数
     void (*valDestructor)(dict *d, void *obj);
+    // 扩展内存函数
     int (*expandAllowed)(size_t moreMem, double usedRatio);
-    /* Allow a dictEntry to carry extra caller-defined metadata.  The
+    /* 调用者携带的额外元数据存储函数，额外的内存初始化时为0大小
+     * Allow a dictEntry to carry extra caller-defined metadata.  The
      * extra memory is initialized to 0 when a dictEntry is allocated. */
     size_t (*dictEntryMetadataBytes)(dict *d);
 } dictType;
@@ -77,35 +91,48 @@ typedef struct dictType {
 #define DICTHT_SIZE_MASK(exp) ((exp) == -1 ? 0 : (DICTHT_SIZE(exp))-1)
 
 struct dict {
+
+    /** 字典类型 */
     dictType *type;
-
+    /** 字典数组 -> ht_table通常只有两个元素ht_table[0]和ht_table[1]，
+     * 一般字典只使用ht_table[0]，只有在对ht_table[0]进行rehash时才会使用到ht_table[1]*/
     dictEntry **ht_table[2];
+    /** 已使用的节点数 */
     unsigned long ht_used[2];
-
+    /** 重新哈希的索引,用于记录rehash当前的进度, 当rehashidx == -1时表示没有进行重新哈希计算 */
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
 
     /* Keep small vars at end for optimal (minimal) struct padding */
+    /** 让小体积变量最贱在优化最小化后的结构体尾部。
+     * 当pauserehash >0 时 重新哈希计算暂停，当pauserehash <0时，指明代码错误 */
     int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
+    /** 指数大小 */
     signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
 };
 
-/* If safe is set to 1 this is a safe iterator, that means, you can call
+/*
+ * 当safe设置成1时, 该字典迭代器是安全的。否则为不安全的。
+ * If safe is set to 1 this is a safe iterator, that means, you can call
  * dictAdd, dictFind, and other functions against the dictionary even while
  * iterating. Otherwise it is a non safe iterator, and only dictNext()
  * should be called while iterating. */
 typedef struct dictIterator {
+    // 字典指针
     dict *d;
+    // 索引
     long index;
+    // 标注
     int table, safe;
+    // 当前节点，下一个节点
     dictEntry *entry, *nextEntry;
-    /* unsafe iterator fingerprint for misuse detection. */
+    /* 指纹，用于安全检测，相当于身份证。unsafe iterator fingerprint for misuse detection(误用检测). */
     unsigned long long fingerprint;
 } dictIterator;
 
 typedef void (dictScanFunction)(void *privdata, const dictEntry *de);
 typedef void (dictScanBucketFunction)(dict *d, dictEntry **bucketref);
 
-/* This is the initial size of every hash table */
+/* 以下两个常量用于哈希表初始化时计算使用。This is the initial size of every hash table */
 #define DICT_HT_INITIAL_EXP      2
 #define DICT_HT_INITIAL_SIZE     (1<<(DICT_HT_INITIAL_EXP))
 

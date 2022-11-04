@@ -228,18 +228,22 @@ void listReleaseIterator(listIter *iter) {
     zfree(iter);
 }
 
-/* Create an iterator in the list private iterator structure */
+/* 创建一个倒带到头节点的链表私有迭代器
+ * Create an iterator in the list private iterator structure */
 void listRewind(list *list, listIter *li) {
     li->next = list->head;
     li->direction = AL_START_HEAD;
 }
 
+/** 创建一个倒带到尾节点的链表私有迭代器 */
 void listRewindTail(list *list, listIter *li) {
     li->next = list->tail;
     li->direction = AL_START_TAIL;
 }
 
-/* Return the next element of an iterator.
+/*
+ * 通过迭代器返回当前链表的下一个节点
+ * Return the next element of an iterator.
  * It's valid to remove the currently returned element using
  * listDelNode(), but not to remove other elements.
  *
@@ -266,7 +270,9 @@ listNode *listNext(listIter *iter)
     return current;
 }
 
-/* Duplicate the whole list. On out of memory NULL is returned.
+/*
+ * 复制整个链表
+ * Duplicate the whole list. On out of memory NULL is returned.
  * On success a copy of the original list is returned.
  *
  * The 'Dup' method set with listSetDupMethod() function is used
@@ -310,7 +316,9 @@ list *listDup(list *orig)
     return copy;
 }
 
-/* Search the list for a node matching a given key.
+/*
+ * 通过关键值来搜索所处的节点
+ * Search the list for a node matching a given key.
  * The match is performed using the 'match' method
  * set with listSetMatchMethod(). If no 'match' method
  * is set, the 'value' pointer of every node is directly
@@ -339,7 +347,9 @@ listNode *listSearchKey(list *list, void *key)
     return NULL;
 }
 
-/* Return the element at the specified zero-based index
+/* 根据指定索引返回对应节点，可正向也可逆向
+ * 正向索引从0开始，逆向索引从-1开始
+ * Return the element at the specified zero-based index
  * where 0 is the head, 1 is the element next to head
  * and so on. Negative integers are used in order to count
  * from the tail, -1 is the last element, -2 the penultimate
@@ -358,22 +368,23 @@ listNode *listIndex(list *list, long index) {
     return n;
 }
 
-/* Rotate the list removing the tail node and inserting it to the head. */
+/* 把链表的尾节点转移到头部，成为新的头节点
+ * Rotate the list removing the tail node and inserting it to the head. */
 void listRotateTailToHead(list *list) {
     if (listLength(list) <= 1) return;
 
-    /* Detach current tail */
+    /* 分离尾节点。Detach current tail */
     listNode *tail = list->tail;
     list->tail = tail->prev;
     list->tail->next = NULL;
-    /* Move it as head */
+    /* 把尾节点移动到头部成为新的头节点。Move it as head */
     list->head->prev = tail;
     tail->prev = NULL;
     tail->next = list->head;
     list->head = tail;
 }
 
-/* Rotate the list removing the head node and inserting it to the tail. */
+/* 把链表的头节点转移到尾部，成为新的尾节点。Rotate the list removing the head node and inserting it to the tail. */
 void listRotateHeadToTail(list *list) {
     if (listLength(list) <= 1) return;
 
@@ -388,7 +399,8 @@ void listRotateHeadToTail(list *list) {
     list->tail = head;
 }
 
-/* Add all the elements of the list 'o' at the end of the
+/* 拼接两个链表使链表'o'在链表'l'尾部
+ * Add all the elements of the list 'o' at the end of the
  * list 'l'. The list 'other' remains empty but otherwise valid. */
 void listJoin(list *l, list *o) {
     if (o->len == 0) return;
@@ -408,7 +420,8 @@ void listJoin(list *l, list *o) {
     o->len = 0;
 }
 
-/* Initializes the node's value and sets its pointers
+/* 初始化一个没有任何成员的空链表，无前驱，无后继，只有当前一个节点
+ * Initializes the node's value and sets its pointers
  * so that it is initially not a member of any list.
  */
 void listInitNode(listNode *node, void *value) {

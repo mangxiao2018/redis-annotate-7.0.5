@@ -1,6 +1,6 @@
 /*
    SipHash reference C implementation
-
+   生成哈希值的工具类，该类是第三方类库，由下面这些人编写。
    Copyright (c) 2012-2016 Jean-Philippe Aumasson
    <jeanphilippe.aumasson@gmail.com>
    Copyright (c) 2012-2014 Daniel J. Bernstein <djb@cr.yp.to>
