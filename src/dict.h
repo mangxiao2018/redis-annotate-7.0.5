@@ -103,7 +103,7 @@ struct dict {
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
 
     /* Keep small vars at end for optimal (minimal) struct padding */
-    /** 让小体积变量最贱在优化最小化后的结构体尾部。
+    /** 让小体积变量最终在优化最小化后的结构体尾部。
      * 当pauserehash >0 时 重新哈希计算暂停，当pauserehash <0时，指明代码错误 */
     int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
     /** 指数大小 */
@@ -121,7 +121,7 @@ typedef struct dictIterator {
     dict *d;
     // 索引
     long index;
-    // 标注
+    // 标注:当safe设置成1时, 该字典迭代器是安全的。否则为不安全的。
     int table, safe;
     // 当前节点，下一个节点
     dictEntry *entry, *nextEntry;
