@@ -202,7 +202,8 @@ zskiplistNode *zslInsert(zskiplist *zsl, double score, sds ele) {
     return x;
 }
 
-/* Internal function used by zslDelete, zslDeleteRangeByScore and
+/* 内部函数，用于删除跳跃链表中某一结点
+ * Internal function used by zslDelete, zslDeleteRangeByScore and
  * zslDeleteRangeByRank. */
 void zslDeleteNode(zskiplist *zsl, zskiplistNode *x, zskiplistNode **update) {
     int i;
@@ -224,7 +225,9 @@ void zslDeleteNode(zskiplist *zsl, zskiplistNode *x, zskiplistNode **update) {
     zsl->length--;
 }
 
-/* Delete an element with matching score/element from the skiplist.
+/*
+ * 从跳跃表中删除一个元素数据
+ * Delete an element with matching score/element from the skiplist.
  * The function returns 1 if the node was found and deleted, otherwise
  * 0 is returned.
  *
@@ -261,7 +264,9 @@ int zslDelete(zskiplist *zsl, double score, sds ele, zskiplistNode **node) {
     return 0; /* not found */
 }
 
-/* Update the score of an element inside the sorted set skiplist.
+/*
+ * 更新跳跃表中某一元素的分值
+ * Update the score of an element inside the sorted set skiplist.
  * Note that the element must exist and must match 'score'.
  * This function does not update the score in the hash table side, the
  * caller should take care of it.
@@ -316,15 +321,17 @@ zskiplistNode *zslUpdateScore(zskiplist *zsl, double curscore, sds ele, double n
     return newnode;
 }
 
+/** 如果最小不包含的值存在，如果存在，那用value与最小值做比较，大于最小值返回true，如果不存在，用value与最小值做比较，大于等于最小值返回true */
 int zslValueGteMin(double value, zrangespec *spec) {
     return spec->minex ? (value > spec->min) : (value >= spec->min);
 }
-
+/** 如果最大不包含的值存在，如果存在，那用value与最大值做比较，小于最大值返回true，如果不存在，用value与最大值做比较，小于等于最大值返回true */
 int zslValueLteMax(double value, zrangespec *spec) {
     return spec->maxex ? (value < spec->max) : (value <= spec->max);
 }
 
-/* Returns if there is a part of the zset is in range. */
+/* 判断是否还在链表内，如果链表已到尾部或头部或最小值比最大值还大等情况返回0表示无法在跳表里做计算了，否则返回1表示可以计算
+ * Returns if there is a part of the zset is in range. */
 int zslIsInRange(zskiplist *zsl, zrangespec *range) {
     zskiplistNode *x;
 
@@ -341,13 +348,16 @@ int zslIsInRange(zskiplist *zsl, zrangespec *range) {
     return 1;
 }
 
-/* Find the first node that is contained in the specified range.
+/*
+ * 查询包含在指定范围里的第一个结点，如果都不在返回NULL
+ * Find the first node that is contained in the specified range.
  * Returns NULL when no element is contained in the range. */
 zskiplistNode *zslFirstInRange(zskiplist *zsl, zrangespec *range) {
     zskiplistNode *x;
     int i;
 
-    /* If everything is out of range, return early. */
+    /* 如果超出范围返回NULL.
+     * If everything is out of range, return early. */
     if (!zslIsInRange(zsl,range)) return NULL;
 
     x = zsl->header;
@@ -367,7 +377,9 @@ zskiplistNode *zslFirstInRange(zskiplist *zsl, zrangespec *range) {
     return x;
 }
 
-/* Find the last node that is contained in the specified range.
+/*
+ * 查询包含在指定范围里的最后一个结点，如果都不在返回NULL
+ * Find the last node that is contained in the specified range.
  * Returns NULL when no element is contained in the range. */
 zskiplistNode *zslLastInRange(zskiplist *zsl, zrangespec *range) {
     zskiplistNode *x;
@@ -392,7 +404,9 @@ zskiplistNode *zslLastInRange(zskiplist *zsl, zrangespec *range) {
     return x;
 }
 
-/* Delete all the elements with score between min and max from the skiplist.
+/*
+ * 删除元素的得分介于最小值与最大值之间的所有元素数据，返回删除的元素个数。
+ * Delete all the elements with score between min and max from the skiplist.
  * Both min and max can be inclusive or exclusive (see range->minex and
  * range->maxex). When inclusive a score >= min && score <= max is deleted.
  * Note that this function takes the reference to the hash table view of the
@@ -424,7 +438,7 @@ unsigned long zslDeleteRangeByScore(zskiplist *zsl, zrangespec *range, dict *dic
     }
     return removed;
 }
-
+/**删除元素介于最小值与最大值之间的所有元素数据，返回删除的元素个数。*/
 unsigned long zslDeleteRangeByLex(zskiplist *zsl, zlexrangespec *range, dict *dict) {
     zskiplistNode *update[ZSKIPLIST_MAXLEVEL], *x;
     unsigned long removed = 0;
@@ -454,7 +468,9 @@ unsigned long zslDeleteRangeByLex(zskiplist *zsl, zlexrangespec *range, dict *di
     return removed;
 }
 
-/* Delete all the elements with rank between start and end from the skiplist.
+/*
+ * 删除元素的层级介于跨度开始与跨度结束之间的所有元素数据，返回删除的元素个数。
+ * Delete all the elements with rank between start and end from the skiplist.
  * Start and end are inclusive. Note that start and end need to be 1-based */
 unsigned long zslDeleteRangeByRank(zskiplist *zsl, unsigned int start, unsigned int end, dict *dict) {
     zskiplistNode *update[ZSKIPLIST_MAXLEVEL], *x;
@@ -484,7 +500,9 @@ unsigned long zslDeleteRangeByRank(zskiplist *zsl, unsigned int start, unsigned 
     return removed;
 }
 
-/* Find the rank for an element by both score and key.
+/*
+ * 通过得分和key获取元素的层级
+ * Find the rank for an element by both score and key.
  * Returns 0 when the element cannot be found, rank otherwise.
  * Note that the rank is 1-based due to the span of zsl->header to the
  * first element. */
@@ -511,7 +529,8 @@ unsigned long zslGetRank(zskiplist *zsl, double score, sds ele) {
     return 0;
 }
 
-/* Finds an element by its rank. The rank argument needs to be 1-based. */
+/* 通过层级获得元素数据
+ * Finds an element by its rank. The rank argument needs to be 1-based. */
 zskiplistNode* zslGetElementByRank(zskiplist *zsl, unsigned long rank) {
     zskiplistNode *x;
     unsigned long traversed = 0;
@@ -531,7 +550,9 @@ zskiplistNode* zslGetElementByRank(zskiplist *zsl, unsigned long rank) {
     return NULL;
 }
 
-/* Populate the rangespec according to the objects min and max. */
+/*
+ * 解析最大值与最小值这个范围
+ * Populate the rangespec according to the objects min and max. */
 static int zslParseRange(robj *min, robj *max, zrangespec *spec) {
     char *eptr;
     spec->minex = spec->maxex = 0;
@@ -570,7 +591,8 @@ static int zslParseRange(robj *min, robj *max, zrangespec *spec) {
 
 /* ------------------------ Lexicographic ranges ---------------------------- */
 
-/* Parse max or min argument of ZRANGEBYLEX.
+/* 参数范围解析
+ * Parse max or min argument of ZRANGEBYLEX.
   * (foo means foo (open interval)
   * [foo means foo (closed interval)
   * - means the min string possible
@@ -610,7 +632,9 @@ int zslParseLexRangeItem(robj *item, sds *dest, int *ex) {
     }
 }
 
-/* Free a lex range structure, must be called only after zslParseLexRange()
+/*
+ * 释放zlexrangespec内存
+ * Free a lex range structure, must be called only after zslParseLexRange()
  * populated the structure with success (C_OK returned). */
 void zslFreeLexRange(zlexrangespec *spec) {
     if (spec->min != shared.minstring &&
@@ -625,11 +649,13 @@ void zslFreeLexRange(zlexrangespec *spec) {
  * When OK is returned the structure must be freed with zslFreeLexRange(),
  * otherwise no release is needed. */
 int zslParseLexRange(robj *min, robj *max, zlexrangespec *spec) {
-    /* The range can't be valid if objects are integer encoded.
+    /* 如果范围无效，返回C_ERR
+     * The range can't be valid if objects are integer encoded.
      * Every item must start with ( or [. */
     if (min->encoding == OBJ_ENCODING_INT ||
         max->encoding == OBJ_ENCODING_INT) return C_ERR;
 
+    /** 将最大值最小值置为NULL，如果解析用户输入的操作失败的话，返回C_ERR，否则返回C_OK*/
     spec->min = spec->max = NULL;
     if (zslParseLexRangeItem(min, &spec->min, &spec->minex) == C_ERR ||
         zslParseLexRangeItem(max, &spec->max, &spec->maxex) == C_ERR) {
@@ -640,7 +666,9 @@ int zslParseLexRange(robj *min, robj *max, zlexrangespec *spec) {
     }
 }
 
-/* This is just a wrapper to sdscmp() that is able to
+/*
+ * 包装sdscmp()函数：比较两个字符串a, b是否相同
+ * This is just a wrapper to sdscmp() that is able to
  * handle shared.minstring and shared.maxstring as the equivalent of
  * -inf and +inf for strings */
 int sdscmplex(sds a, sds b) {
