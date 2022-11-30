@@ -30,6 +30,8 @@
 
 /*-----------------------------------------------------------------------------
  * Sorted set API
+ * 跳跃表数据结构
+ * 跳跃表只用在实现有序集合键、集群节点中用作内部数据结构这两处。
  *----------------------------------------------------------------------------*/
 
 /* ZSETs are ordered sets using two data structures to hold the same elements
@@ -61,12 +63,15 @@
 
 /*-----------------------------------------------------------------------------
  * Skiplist implementation of the low level API
+ * 跳跃表实现的是低层的API
  *----------------------------------------------------------------------------*/
 
 int zslLexValueGteMin(sds value, zlexrangespec *spec);
 int zslLexValueLteMax(sds value, zlexrangespec *spec);
 
-/* Create a skiplist node with the specified number of levels.
+/*
+ * 使用指定层级数为参数来创建一个跳跃表节点
+ * Create a skiplist node with the specified number of levels.
  * The SDS string 'ele' is referenced by the node after the call. */
 zskiplistNode *zslCreateNode(int level, double score, sds ele) {
     zskiplistNode *zn =
@@ -76,7 +81,9 @@ zskiplistNode *zslCreateNode(int level, double score, sds ele) {
     return zn;
 }
 
-/* Create a new skiplist. */
+/*
+ * 创建一个新的跳跃链表
+ * Create a new skiplist. */
 zskiplist *zslCreate(void) {
     int j;
     zskiplist *zsl;
@@ -94,7 +101,9 @@ zskiplist *zslCreate(void) {
     return zsl;
 }
 
-/* Free the specified skiplist node. The referenced SDS string representation
+/*
+ * 释放跳跃链表结节内存
+ * Free the specified skiplist node. The referenced SDS string representation
  * of the element is freed too, unless node->ele is set to NULL before calling
  * this function. */
 void zslFreeNode(zskiplistNode *node) {
@@ -102,7 +111,8 @@ void zslFreeNode(zskiplistNode *node) {
     zfree(node);
 }
 
-/* Free a whole skiplist. */
+/* 释放整个跳跃链表内存
+ * Free a whole skiplist. */
 void zslFree(zskiplist *zsl) {
     zskiplistNode *node = zsl->header->level[0].forward, *next;
 
@@ -115,11 +125,14 @@ void zslFree(zskiplist *zsl) {
     zfree(zsl);
 }
 
-/* Returns a random level for the new skiplist node we are going to create.
+/*
+ * 该函数用于让我们新创建的跳跃链表结点返回一个随机的层级数，该层级数值介于[1 - ZSKIPLIST_MAXLEVEL]之间
+ * Returns a random level for the new skiplist node we are going to create.
  * The return value of this function is between 1 and ZSKIPLIST_MAXLEVEL
  * (both inclusive), with a powerlaw-alike distribution where higher
  * levels are less likely to be returned. */
 int zslRandomLevel(void) {
+    // 阈值 RAND_MAX:0x7fff转成10进制是32767也就是2^15 -> ZSKIPLIST_P*RAND_MAX = 1/4 * 2^15 = 2^13 = 8192
     static const int threshold = ZSKIPLIST_P*RAND_MAX;
     int level = 1;
     while (random() < threshold)
@@ -127,7 +140,9 @@ int zslRandomLevel(void) {
     return (level<ZSKIPLIST_MAXLEVEL) ? level : ZSKIPLIST_MAXLEVEL;
 }
 
-/* Insert a new node in the skiplist. Assumes the element does not already
+/*
+ * 插入一个新结点到跳跃链表中。
+ * Insert a new node in the skiplist. Assumes the element does not already
  * exist (up to the caller to enforce that). The skiplist takes ownership
  * of the passed SDS string 'ele'. */
 zskiplistNode *zslInsert(zskiplist *zsl, double score, sds ele) {

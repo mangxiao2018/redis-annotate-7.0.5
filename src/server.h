@@ -1246,21 +1246,25 @@ struct sharedObjectsStruct {
     sds minstring, maxstring;
 };
 
-/* ZSETs use a specialized version of Skiplists */
+/* 跳跃链表结点数据结构。
+ * 其中，ZSET的实现使用了特定版本的跳跃链表代码实现。
+ * ZSETs use a specialized version of Skiplists */
 typedef struct zskiplistNode {
-    sds ele;
-    double score;
-    struct zskiplistNode *backward;
-    struct zskiplistLevel {
-        struct zskiplistNode *forward;
-        unsigned long span;
-    } level[];
+    sds ele; // sds元素数据
+    double score; //得分
+    struct zskiplistNode *backward; //链表后向结点
+    struct zskiplistLevel { //跳跃链表层级
+        struct zskiplistNode *forward; //链表前向结点
+        unsigned long span; //跨度
+    } level[]; //跳跃表层级数组
 } zskiplistNode;
-
+/**
+ * 跳跃链表数据结构
+ * */
 typedef struct zskiplist {
-    struct zskiplistNode *header, *tail;
-    unsigned long length;
-    int level;
+    struct zskiplistNode *header, *tail; // 跳跃表结点:头指针、尾指针
+    unsigned long length; // 链表长度,即链表的结点数量
+    int level; //链表层级,最数最大的结点的层数
 } zskiplist;
 
 typedef struct zset {
