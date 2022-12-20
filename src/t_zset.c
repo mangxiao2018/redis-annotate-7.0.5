@@ -677,37 +677,55 @@ int sdscmplex(sds a, sds b) {
     if (a == shared.maxstring || b == shared.minstring) return 1;
     return sdscmp(a,b);
 }
-
+/**
+ * 比较value与spec->min的大小
+ * @param value
+ * @param spec
+ * @return
+ */
 int zslLexValueGteMin(sds value, zlexrangespec *spec) {
     return spec->minex ?
         (sdscmplex(value,spec->min) > 0) :
         (sdscmplex(value,spec->min) >= 0);
 }
-
+/**
+ * 比较value与spec->max的大小
+ * @param value
+ * @param spec
+ * @return
+ */
 int zslLexValueLteMax(sds value, zlexrangespec *spec) {
     return spec->maxex ?
         (sdscmplex(value,spec->max) < 0) :
         (sdscmplex(value,spec->max) <= 0);
 }
 
-/* Returns if there is a part of the zset is in the lex range. */
+/**
+ * 判断zset的部分数据是否在跨度范围内，不在返回0，在则返回1
+ * Returns if there is a part of the zset is in the lex range. */
 int zslIsInLexRange(zskiplist *zsl, zlexrangespec *range) {
     zskiplistNode *x;
 
+    /** 比较rang->min和rang->max的大小，如果min > max或min==max, 则函数返回0*/
     /* Test for ranges that will always be empty. */
     int cmp = sdscmplex(range->min,range->max);
     if (cmp > 0 || (cmp == 0 && (range->minex || range->maxex)))
         return 0;
+    /** 跳跃表的尾结点如果为空或该结点元素不在跨度范围内, 则函数返回0*/
     x = zsl->tail;
     if (x == NULL || !zslLexValueGteMin(x->ele,range))
         return 0;
+    /** 跳跃表的头部第一层的前向结点如果为空或该结点元素不在跨度范围内，则函数返回0*/
     x = zsl->header->level[0].forward;
     if (x == NULL || !zslLexValueLteMax(x->ele,range))
         return 0;
+    /** 否则返回1 */
     return 1;
 }
 
-/* Find the first node that is contained in the specified lex range.
+/**
+ * 查询首先找到的节点是否在指定的范围内，如果不在返回NULL
+ * Find the first node that is contained in the specified lex range.
  * Returns NULL when no element is contained in the range. */
 zskiplistNode *zslFirstInLexRange(zskiplist *zsl, zlexrangespec *range) {
     zskiplistNode *x;
@@ -733,7 +751,9 @@ zskiplistNode *zslFirstInLexRange(zskiplist *zsl, zlexrangespec *range) {
     return x;
 }
 
-/* Find the last node that is contained in the specified range.
+/**
+ * 查询最后找到的节点是否在指定的范围内，如果不在返回NULL
+ * Find the last node that is contained in the specified range.
  * Returns NULL when no element is contained in the range. */
 zskiplistNode *zslLastInLexRange(zskiplist *zsl, zlexrangespec *range) {
     zskiplistNode *x;
@@ -760,17 +780,29 @@ zskiplistNode *zslLastInLexRange(zskiplist *zsl, zlexrangespec *range) {
 
 /*-----------------------------------------------------------------------------
  * Listpack-backed sorted set API
+ * 列表排序API
  *----------------------------------------------------------------------------*/
-
+/**
+ * 排序并返回得分
+ * @param vstr
+ * @param vlen
+ * @return
+ */
 double zzlStrtod(unsigned char *vstr, unsigned int vlen) {
     char buf[128];
     if (vlen > sizeof(buf) - 1)
         vlen = sizeof(buf) - 1;
+    //拷贝vstr到buf字符数组中，拷贝长度为vlen，末尾追加'\0'
     memcpy(buf,vstr,vlen);
     buf[vlen] = '\0';
+    // 排序并返回
     return strtod(buf,NULL);
  }
-
+/**
+ * 获取得分
+ * @param sptr
+ * @return
+ */
 double zzlGetScore(unsigned char *sptr) {
     unsigned char *vstr;
     unsigned int vlen;
@@ -789,7 +821,9 @@ double zzlGetScore(unsigned char *sptr) {
     return score;
 }
 
-/* Return a listpack element as an SDS string. */
+/**
+ * 列表转成字符串sds并返回
+ * Return a listpack element as an SDS string. */
 sds lpGetObject(unsigned char *sptr) {
     unsigned char *vstr;
     unsigned int vlen;
@@ -805,7 +839,9 @@ sds lpGetObject(unsigned char *sptr) {
     }
 }
 
-/* Compare element in sorted set with given element. */
+/**
+ * 用指定的元素在排过序的set集合里比较是否存在
+ * Compare element in sorted set with given element. */
 int zzlCompareElements(unsigned char *eptr, unsigned char *cstr, unsigned int clen) {
     unsigned char *vstr;
     unsigned int vlen;
